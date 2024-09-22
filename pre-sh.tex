@@ -1,0 +1,103 @@
+\section{Preliminary Knowledge of Spherical Harmonic Functions}
+
+Spherical harmonic functions are essential in various scientific and engineering disciplines, providing a way to describe functions on the surface of a sphere. Here is some preliminary knowledge to help understand spherical harmonic functions.
+
+\subsection*{Basic Concepts}
+
+\paragraph{Spherical Coordinates:}
+Spherical coordinates are a system for describing points in three-dimensional space using three parameters:
+\begin{itemize}
+	\item \textbf{Radius (r)}: The distance from the origin to the point.
+	\item \textbf{Polar Angle (θ)}: The angle between the positive z-axis and the line connecting the origin to the point. It ranges from 0 to π.
+	\item \textbf{Azimuthal Angle (φ)}: The angle in the x-y plane from the positive x-axis. It ranges from 0 to 2π.
+\end{itemize}
+
+\paragraph{Functions on a Sphere:}
+Functions defined on the surface of a sphere depend only on the angles θ and φ, not on the radius. These functions can be expanded in terms of spherical harmonics.
+
+\subsection*{Spherical Harmonic Functions}
+
+\paragraph{Definition:}
+Spherical harmonic functions \( Y_l^m(\theta, \phi) \) are solutions to the angular part of Laplace's equation in spherical coordinates. They are defined as:
+\[
+Y_l^m(\theta, \phi) = \sqrt{\frac{(2l+1)}{4\pi} \frac{(l-m)!}{(l+m)!}} P_l^m(\cos \theta) e^{im\phi}
+\]
+where:
+\begin{itemize}
+	\item \( l \) is the degree (non-negative integer).
+	\item \( m \) is the order (integer such that \( -l \leq m \leq l \)).
+	\item \( P_l^m \) are the associated Legendre polynomials.
+\end{itemize}
+
+\paragraph{Associated Legendre Polynomials:}
+These polynomials \( P_l^m(x) \) are derived from the Legendre polynomials \( P_l(x) \) and are given by:
+\[
+P_l^m(x) = (1 - x^2)^{\frac{m}{2}} \frac{d^m}{dx^m} P_l(x)
+\]
+where \( P_l(x) \) solves the Legendre differential equation:
+\[
+\frac{d}{dx} \left( (1 - x^2) \frac{d P_l(x)}{dx} \right) + l(l+1) P_l(x) = 0
+\]
+
+\subsection*{Properties}
+
+\paragraph{Orthogonality:}
+Spherical harmonics are orthogonal functions, satisfying:
+\[
+\int_0^{2\pi} \int_0^{\pi} Y_l^m(\theta, \phi) Y_{l'}^{m'}(\theta, \phi)^* \sin \theta \, d\theta \, d\phi = \delta_{ll'} \delta_{mm'}
+\]
+where \( \delta_{ll'} \) and \( \delta_{mm'} \) are Kronecker delta functions.
+
+\paragraph{Normalization:}
+They are normalized so that:
+\[
+\int_0^{2\pi} \int_0^{\pi} |Y_l^m(\theta, \phi)|^2 \sin \theta \, d\theta \, d\phi = 1
+\]
+
+\paragraph{Completeness:}
+Any square-integrable function on the sphere can be expanded as a sum of spherical harmonics:
+\[
+f(\theta, \phi) = \sum_{l=0}^{\infty} \sum_{m=-l}^{l} a_l^m Y_l^m(\theta, \phi)
+\]
+where the coefficients \( a_l^m \) are given by:
+\[
+a_l^m = \int_0^{2\pi} \int_0^{\pi} f(\theta, \phi) Y_l^m(\theta, \phi)^* \sin \theta \, d\theta \, d\phi
+\]
+
+\subsection*{Applications}
+
+\begin{itemize}
+	\item \textbf{Quantum Mechanics:} Used to describe the angular part of the wavefunctions of particles in spherical potentials, such as electrons in atoms.
+	\item \textbf{Geophysics:} Applied in representing the Earth's gravitational and magnetic fields.
+	\item \textbf{Computer Graphics:} Utilized in techniques such as spherical harmonics lighting to efficiently simulate the way light interacts with surfaces.
+\end{itemize}
+
+\subsection*{Summary}
+
+Spherical harmonic functions \( Y_l^m(\theta, \phi) \) provide a powerful tool for representing and analyzing functions on the surface of a sphere. They are characterized by their degree \( l \) and order \( m \), and are defined in terms of associated Legendre polynomials and complex exponentials. Their orthogonality and completeness properties make them invaluable in various fields of science and engineering.
+
+
+\section*{Representing 3D Geometry Using Spherical Harmonic Functions}
+
+Spherical harmonic functions are widely used to represent 3D geometries, especially when these geometries have spherical or nearly spherical symmetry. This representation is particularly useful in fields such as computer graphics, medical imaging, and geophysics.
+
+\subsection*{Steps to Represent 3D Geometry}
+
+The key idea is to represent the shape of a 3D object as a function on the unit sphere. This function can then be expanded into a series of spherical harmonics. Here's an outline of the process:
+
+\begin{enumerate}
+	\item \textbf{Parameterize the Surface:} Parameterize the surface of the 3D object using spherical coordinates \((\theta, \phi)\).
+	\item \textbf{Function on the Sphere:} Define a function \( f(\theta, \phi) \) that represents the radius of the surface from the origin as a function of the spherical coordinates. For example, \( f(\theta, \phi) \) could be the distance from the origin to the surface at the given angles.
+	\item \textbf{Spherical Harmonic Expansion:} Expand the function \( f(\theta, \phi) \) in terms of spherical harmonics:
+	\[
+	f(\theta, \phi) = \sum_{l=0}^{\infty} \sum_{m=-l}^{l} a_l^m Y_l^m(\theta, \phi)
+	\]
+	where \( Y_l^m(\theta, \phi) \) are the spherical harmonics, and \( a_l^m \) are the coefficients.
+	\item \textbf{Reconstruction:} Use the spherical harmonic coefficients to reconstruct the surface geometry.
+\end{enumerate}
+
+\subsection*{Example: Representing a Simple 3D Geometry}
+
+Below is a Python script to represent a simple 3D geometry using spherical harmonics. For demonstration, we'll represent a deformed sphere (like an ellipsoid).
+
+	

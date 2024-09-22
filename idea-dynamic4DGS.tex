@@ -1,0 +1,303 @@
+\section{Real-Time Dynamic Scene Reconstruction}
+Our objective is to develop innovative techniques for real-time 3D reconstruction and rendering, with the goal of estimating BRDF in any frequency domain, surface reflectance with specific channels, materials, enhancing the estimation of dynamic wireless channels within 3D space. This advancement will provide critical support for more accurate and efficient wireless communication systems in dynamic environments. 
+
+In this context, we define the scene as a 3D geometry (e.g., mesh, point cloud, SDF, neural representation etc), surface parameters (e.g., BRDF, reflectance) across multiple spectral ranges, including visible light, near-infrared (NIR), infrared (IR), and terahertz frequencies. Additionally, the scene incorporates the propagation characteristics of electromagnetic waves in 3D space, e.g., considering refraction and diffraction at various frequencies.
+
+\subsection{Paper Reading}
+\begin{enumerate}
+	\item NeuS: Learning Neural Implicit Surfaces by Volume Rendering for Multi-view Reconstruction, In NeurIPS, 2021. 
+	\item DepthCrafter: Generating Consistent Long Depth Sequences
+	for Open-world Videos.
+	\item DUSt3R: Geometric 3D Vision Made Easy. In CVPR, 2024.
+	\item GPS-Gaussian: Generalizable Pixel-wise 3D Gaussian Splatting for Real-time Human Novel View Synthesis. In CVPR, 2024.
+	\item GigaGS: Scaling up Planar-Based 3D Gaussians for Large Scene Surface Reconstruction. 
+	\item https://saghiralfasly.github.io/OSRE-Project/
+\end{enumerate}
+
+
+\section{Idea 1: Real-time Dynamic Scene Reconstruction via Multi-view RGBD Array}
+We assume that our RGBD camera can output depth with real world unit, and we have optical flow for each frame in dynamic scene that calculates from consecutive frames by SOTA stereo matching methods, and we want to estimate each GS movement (translation) and rotation in 3D space by jointly using optical flow and depth observation.
+  
+%\subsubsection{Depth and Optical Flow to 3D Scene Flow}
+\subsection{Estimate 3D GS Translation by Depth and Optical Flow}
+Given a depth image and optical flow, along with known camera intrinsic and extrinsic parameters, we can calculate the 3D movement of points in space. The process involves converting 2D image coordinates into 3D points, then using the optical flow to estimate the 3D movement. Here are system inputs,
+%\subsection{System Inputs}
+\begin{itemize}
+	\item Depth image \( D(u, v) \) at each pixel \((u, v)\).
+	\item Optical flow \( \mathbf{\Delta u} = (\Delta u, \Delta v) \), representing the 2D displacement of pixels between consecutive frames.
+	\item Camera intrinsic matrix \( K \) and extrinsic parameters (world to camera matrix) \( R \) and \( \mathbf{t} \) (rotation and translation between world and camera coordinates).
+\end{itemize}
+
+\textbf{Step 1: Depth to 3D Points in Camera Coordinates}
+
+Given the depth \( D(u, v) \) and camera intrinsic matrix \( K \), the 2D pixel coordinates \((u, v)\) are converted to 3D coordinates \((X_c, Y_c, Z_c)\) in the camera coordinate system using:
+
+\[
+\mathbf{P}_c = D(u, v) K^{-1} \begin{pmatrix} u \\ v \\ 1 \end{pmatrix}
+\]
+
+The intrinsic matrix \( K \) is:
+
+\[
+K = \begin{pmatrix}
+	f_x & 0 & c_x \\
+	0 & f_y & c_y \\
+	0 & 0 & 1
+\end{pmatrix}
+\]
+
+So the 3D point in camera coordinates becomes:
+
+\[
+\mathbf{P}_c = D(u, v) \begin{pmatrix}
+	\frac{u - c_x}{f_x} \\
+	\frac{v - c_y}{f_y} \\
+	1
+\end{pmatrix}
+\]
+
+\textbf{Step 2: Optical Flow as 2D Disparity in the Image Plane}
+
+Optical flow represents the 2D displacement of pixels between two frames. For a pixel at \((u, v)\), the displacement in the next frame is:
+
+\[
+\mathbf{\Delta u} = \begin{pmatrix} \Delta u \\ \Delta v \end{pmatrix} = \begin{pmatrix} u' - u \\ v' - v \end{pmatrix}
+\]
+
+Where \( (u', v') \) are the pixel coordinates in the next frame.
+
+\textbf{Step 3: Estimate 3D Translation-(X, Y) via Optical Flow}
+
+We can estimate the 3D position of the pixel in the next frame by using the updated pixel coordinates \((u', v')\) and assuming the depth remains approximately the same:
+
+\[
+\mathbf{P}'_c = D(u, v) K^{-1} \begin{pmatrix} u' \\ v' \\ 1 \end{pmatrix}
+\]
+
+The 3D translation \( \Delta \mathbf{P}_c = ( \Delta X_c, \Delta Y_c, \Delta Z_c ) \) in camera coordinates is:
+
+\[
+\Delta \mathbf{P}_c = \mathbf{P}'_c - \mathbf{P}_c
+\]
+
+This simplifies to:
+
+\[
+\Delta \mathbf{P}_c = D(u, v) \left( K^{-1} \begin{pmatrix} u' \\ v' \\ 1 \end{pmatrix} - K^{-1} \begin{pmatrix} u \\ v \\ 1 \end{pmatrix} \right)
+\]
+Here, naive $\Delta Z_c = 0$, but we can replace it as the unbiased estimation as $\Delta Z_c = D'(u', v') - D(u, v)$ to estimate the translation in z-axis in camera coordinate.
+Given that the optical flow represents the change in pixel coordinates, we have:
+
+\[
+\Delta \mathbf{P}_c = D(u, v) K^{-1} \begin{pmatrix} \Delta u \\ \Delta v \\ 0 \end{pmatrix}
+\]
+
+\textbf{Step 4: Incorporate Extrinsic Parameters}
+
+If we want to convert the 3D movement to world coordinates, we apply the camera's extrinsic parameters (rotation \( R \) and translation \( \mathbf{t} \)) to the displacement:
+
+\[
+\Delta \mathbf{P}_w = R^{-1} \Delta \mathbf{P}_c
+\]
+
+\subsection{Summary of Equations}
+\begin{enumerate}
+	\item \textbf{Convert 2D pixel and depth to 3D point in camera coordinates:}
+	\[
+	\mathbf{P}_c = D(u, v) K^{-1} \begin{pmatrix} u \\ v \\ 1 \end{pmatrix}
+	\]
+	\item \textbf{3D displacement from optical flow and depth:}
+	\[
+	\Delta \mathbf{P}_c = D(u, v) K^{-1} \begin{pmatrix} \Delta u \\ \Delta v \\ 0 \end{pmatrix}
+	\]
+	\item \textbf{Convert to world coordinates (if necessary):}
+	\[
+	\Delta \mathbf{P}_w = R^{-1} \Delta \mathbf{P}_c
+	\]
+\end{enumerate}
+
+
+\section{Estimating the Rotation of Spherical Harmonic Function}
+The rotated spherical harmonic function can be expressed as:
+
+\[
+Y_{\ell}^{m'}(\theta', \phi') = \sum_{m=-\ell}^{\ell} D^{\ell}_{m'm}(\alpha, \beta, \gamma) Y_{\ell}^{m}(\theta, \phi)
+\]
+
+where:
+\begin{itemize}
+	\item \( Y_{\ell}^{m}(\theta, \phi) \) is the spherical harmonic of degree \( \ell \) and order \( m \),
+	\item \( \alpha, \beta, \gamma \) are the Euler angles,
+	\item \( D^{\ell}_{m'm}(\alpha, \beta, \gamma) \) is the Wigner D-matrix element,
+	\item \( \theta, \phi \) are the original spherical coordinates,
+	\item \( \theta', \phi' \) are the spherical coordinates after the rotation.
+\end{itemize}
+
+\subsection{Wigner D-matrix}
+The Wigner D-matrix \( D^{\ell}_{m'm}(\alpha, \beta, \gamma) \) is used to describe the rotation of a spherical harmonic function. It depends on the Euler angles \( \alpha \), \( \beta \), and \( \gamma \), which represent rotations about the z-axis, y-axis, and z-axis, respectively.
+
+The general form of the Wigner D-matrix is:
+
+\[
+D^{\ell}_{m'm}(\alpha, \beta, \gamma) = e^{-im'\alpha} d^{\ell}_{m'm}(\beta) e^{-im\gamma}
+\]
+
+Where:
+\begin{itemize}
+	\item \( e^{-im'\alpha} \) and \( e^{-im\gamma} \) are phase factors for rotations about the z-axis.
+	\item \( d^{\ell}_{m'm}(\beta) \) is the Wigner small d-matrix, which encodes the rotation about the y-axis.
+\end{itemize}
+
+The small \( d \)-matrix \( d^{\ell}_{m'm}(\beta) \) is given by:
+
+\[
+d^{\ell}_{m'm}(\beta) = \sum_{k} \frac{(-1)^{k} \sqrt{(\ell + m')!(\ell - m')!(\ell + m)!(\ell - m)!}}{(\ell + m - k)!k!(m' - m + k)!(\ell - m' - k)!} \left( \cos\frac{\beta}{2} \right)^{2\ell - 2k + m - m'} \left( \sin\frac{\beta}{2} \right)^{2k + m' - m}
+\]
+
+where the summation index \( k \) runs over all integers for which the arguments of the factorials are non-negative, and the angle \( \beta \) is the rotation angle about the y-axis.
+
+Thus, the full Wigner D-matrix expression is:
+
+\[
+D^{\ell}_{m'm}(\alpha, \beta, \gamma) = e^{-im'\alpha} \left( \sum_{k} \frac{(-1)^{k} \sqrt{(\ell + m')!(\ell - m')!(\ell + m)!(\ell - m)!}}{(\ell + m - k)!k!(m' - m + k)!(\ell - m' - k)!} \left( \cos\frac{\beta}{2} \right)^{2\ell - 2k + m - m'} \left( \sin\frac{\beta}{2} \right)^{2k + m' - m} \right) e^{-im\gamma}
+\]
+
+
+
+\section{Estimating Rotation of GS}
+To estimate the rotation of a camera or object using depth and optical flow, we can use the relationship between the 2D optical flow and the corresponding 3D motion of points, which includes both translation and rotation. Our goal is to isolate the rotational component.
+
+%\subsection{Key Concepts}
+\begin{itemize}
+	\item \textbf{Optical flow} represents the movement of 2D points between frames in the image plane.
+	\item \textbf{3D motion} can be decomposed into translation and rotation.
+	\item The \textbf{rotation matrix} describes how points rotate in 3D space.
+\end{itemize}
+
+We use the 2D optical flow and depth information to recover the 3D rotation of the points or camera.
+
+\textbf{Step 1: Express 3D Point Motion}
+
+For a 3D point \( \mathbf{P}_c = (X_c, Y_c, Z_c)^T \) in the camera coordinate system, the movement between two frames is expressed as:
+
+\[
+\mathbf{P}_c' = R \mathbf{P}_c + \mathbf{t}
+\]
+
+Where:
+\begin{itemize}
+	\item \( R \) is the \( 3 \times 3 \) rotation matrix.
+	\item \( \mathbf{t} \) is the \( 3 \times 1 \) translation vector.
+	\item \( \mathbf{P}_c \) is the 3D point in the first frame.
+	\item \( \mathbf{P}_c' \) is the 3D point in the second frame.
+\end{itemize}
+
+\textbf{Step 2: Project 3D Points to 2D}
+
+The projection of a 3D point \( \mathbf{P}_c = (X_c, Y_c, Z_c)^T \) onto the 2D image plane is given by:
+
+\[
+\begin{pmatrix} u \\ v \end{pmatrix} = K \begin{pmatrix} \frac{X_c}{Z_c} \\ \frac{Y_c}{Z_c} \\ 1 \end{pmatrix}
+\]
+
+Where:
+\begin{itemize}
+	\item \( (u, v) \) are the 2D pixel coordinates.
+	\item \( K \) is the intrinsic camera matrix.
+	\item \( Z_c \) is the depth of the point in the camera coordinate system.
+\end{itemize}
+
+\textbf{Step 3: Relating Optical Flow to Rotation}
+
+The optical flow \( \mathbf{\Delta u} = (\Delta u, \Delta v) \) between two frames is the result of the 3D motion of \( \mathbf{P}_c \). This motion can be caused by both translation and rotation.
+
+The total 3D motion is:
+
+\[
+\mathbf{P}_c' = R \mathbf{P}_c + \mathbf{t}
+\]
+
+For rotation-only motion (i.e., assuming no translation), the relationship between the change in the 3D point due to rotation is:
+
+\[
+\mathbf{\Delta P}_c = R \mathbf{P}_c - \mathbf{P}_c = (R - I) \mathbf{P}_c
+\]
+
+Where \( I \) is the identity matrix.
+
+\textbf{Step 4: Relate Rotation to Optical Flow}
+
+The optical flow represents the 2D projection of the 3D motion. Thus, for each pixel \( (u, v) \), the optical flow \( \mathbf{\Delta u} = (\Delta u, \Delta v) \) is related to the 3D rotation \( R \) by:
+
+\[
+\mathbf{\Delta u} = K \frac{(R - I) \mathbf{P}_c}{Z_c}
+\]
+
+Where:
+\begin{itemize}
+	\item \( K \) is the camera intrinsic matrix.
+	\item \( \mathbf{P}_c = (X_c, Y_c, Z_c)^T \) is the 3D point in the first frame.
+\end{itemize}
+
+\textbf{Step 5: Solving for Rotation}
+
+Given the optical flow \( \mathbf{\Delta u} = (\Delta u, \Delta v) \), the depth \( Z_c \), and the intrinsic matrix \( K \), we can estimate the rotation matrix \( R \). The objective is to minimize the error between the observed optical flow and the predicted optical flow:
+
+\[
+\min_R \sum \left\| \mathbf{\Delta u}_{\text{observed}} - K \frac{(R - I) \mathbf{P}_c}{Z_c} \right\|^2
+\]
+
+Where \( \mathbf{\Delta u}_{\text{observed}} \) is the measured optical flow, and \( K \), \( \mathbf{P}_c \), and \( Z_c \) are known.
+
+\textbf{Step 6: Small Angle Approximation for Rotation}
+
+For small rotations, the rotation matrix \( R \) can be approximated using the axis-angle representation. For small rotations, \( R \) is expressed as:
+
+\[
+R \approx I + [\mathbf{\omega}]_\times
+\]
+
+Where \( \mathbf{\omega} = (\omega_x, \omega_y, \omega_z)^T \) is the rotation vector, and \( [\mathbf{\omega}]_\times \) is the skew-symmetric matrix of \( \mathbf{\omega} \):
+
+\[
+[\mathbf{\omega}]_\times = \begin{pmatrix} 
+	0 & -\omega_z & \omega_y \\
+	\omega_z & 0 & -\omega_x \\
+	-\omega_y & \omega_x & 0 
+\end{pmatrix}
+\]
+
+In this case, the 3D point movement due to rotation is:
+
+\[
+\mathbf{\Delta P}_c \approx [\mathbf{\omega}]_\times \mathbf{P}_c
+\]
+
+The optical flow is related to the rotation vector \( \mathbf{\omega} \) by:
+
+\[
+\mathbf{\Delta u} \approx K \frac{[\mathbf{\omega}]_\times \mathbf{P}_c}{Z_c}
+\]
+
+\subsection{Conclusion}
+
+To estimate rotation using depth and optical flow:
+\begin{itemize}
+	\item Convert the 2D optical flow into 3D motion using the known depth and camera intrinsics.
+	\item Decompose the 3D motion into translation and rotation components.
+	\item Use an optimization method to estimate the rotation matrix \( R \) by minimizing the error between the observed optical flow and the predicted optical flow.
+\end{itemize}
+
+The key equation relating optical flow to rotation is:
+
+\[
+\mathbf{\Delta u} = K \frac{(R - I) \mathbf{P}_c}{Z_c}
+\]
+
+For small rotations, this simplifies to:
+
+\[
+\mathbf{\Delta u} \approx K \frac{[\mathbf{\omega}]_\times \mathbf{P}_c}{Z_c}
+\]
+
+

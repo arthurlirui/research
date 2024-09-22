@@ -1,0 +1,87 @@
+\documentclass[lettersize,journal,onecolumn]{IEEEtran}
+\usepackage{amsmath,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{cite}
+%\usepackage{subfigure}
+\hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
+% updated with editorial comments 8/9/2021
+
+\begin{document}
+
+\title{Real-Time Dynamic Scene Reconstruction}
+
+\author{Rui Li}
+        % <-this % stops a space
+%\thanks{This paper was produced by the IEEE Publication Technology Group. They are in Piscataway, NJ.}% <-this % stops a space
+%\thanks{Manuscript received April 19, 2021; revised August 16, 2021.}}
+
+% The paper headers
+%\markboth{Journal of \LaTeX\ Class Files,~Vol.~14, No.~8, August~2021}%
+%{Shell \MakeLowercase{\textit{et al.}}: A Sample Article Using IEEEtran.cls for IEEE Journals}
+
+%\IEEEpubid{0000--0000/00\$00.00~\copyright~2021 IEEE}
+% Remember, if you use this you must call \IEEEpubidadjcol in the second
+% column for its text to clear the IEEEpubid mark.
+
+\maketitle
+
+\def\eg{\emph{e.g.}}
+\def\Eg{\emph{E.g.}}
+\def\etal{\emph{et al.}}
+
+\newcommand\todo[1]{{\color{orange}TODO: #1}}
+\newcommand\revised[1]{{\color{red}#1}}
+\newcommand\idea[1]{{\color{blue}IDEA:#1}}
+\newcommand\eqnref[1]{Eqn.~(\ref{#1})}
+\newcommand\figref[1]{Fig.~(\ref{#1})}
+\newcommand\secref[1]{Sec.~\ref{#1}}
+\newcommand\tabref[1]{Tab.~\ref{#1}}
+
+%\newcommand{\C}{\mathbf{C}}
+%\newcommand{\R}{\mathbf{R}}
+\newcommand{\T}{\mathbf{T}}
+\newcommand{\svl}{\hat{\mathbf{s}}} % local coordinate Stokes vector
+\newcommand{\svg}{\mathbf{s}} % global coordinate Stokes vector
+\newcommand{\svt}{\mathbf{S}} % global coordinate Stokes vector
+\newcommand\mm[1]{\mathcal{#1}}
+\newcommand\sv[1]{\mathcal{#1}}
+\newcommand{\note}[1]{{\em{\textcolor{orange}{#1}}}}
+
+\begin{abstract}
+The concept of dynamic scene reconstruction closely aligns with our primary national project on immersive communication, wireless communication, 6G technology, and dynamic scene representation and rendering. These sub-projects will form the core components of the 6G initiatives, playing a critical role in advancing the overarching objectives.
+\end{abstract}
+
+%\begin{IEEEkeywords}
+
+%\end{IEEEkeywords}
+
+\input{idea-dynamic4DGS}
+%\input{idea-directGS}
+\input{pre-camera}
+%\input{intro}
+%\input{sh}
+%\input{pre-sh}
+%\input{overview}
+%\input{method}
+%\input{exp}
+%\input{ext_exp}
+%\input{conclusion}
+%\bibliographystyle{IEEEtran}
+%\bibliography{trans}
+%{\small
+%	\bibliographystyle{ieee_fullname}
+%	\bibliography{trans.bib}
+%}
+\vfill
+
+\end{document}
+
+

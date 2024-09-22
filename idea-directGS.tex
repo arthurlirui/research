@@ -1,0 +1,20 @@
+\section{Idea 2: Direct Dense Gaussian Point Cloud Generation by ViT}
+
+\subsection{Point Cloud Generation Based on RGBD and Initialization of Gaussian Point Clouds}
+The depth information is projected into the 3D camera coordinate system through the camera model and then transformed into the world coordinate system. Note that if the camera is single and stationary, the relationship between the camera and world coordinate systems can be ignored. However, if there are multiple cameras or a single moving camera, it is necessary to obtain the pose transformation relationship of the camera in the world coordinate system at each timestamp.
+
+If the representation model is a Gaussian point cloud, the Radiance Field of the color component is expressed via spherical harmonics. The spherical harmonics part of the Gaussian point cloud must be initialized during the initialization stage, requiring a short training period for the entire system.
+
+\subsection{Fast Scene Flow Estimation Based on Depth Video Stream and Optical Flow}
+Scene flow is essentially the optical flow in the 3D space. We estimate the 3D motion of objects indirectly by analyzing the optical flow from 2D images and the variation in depth maps.
+
+Let $\vec{u} = (u,v)$ be a point on the 2D image, and $\Delta u$ be the optical flow between two consecutive frames, such that $\Delta u = u_{t+1} - u_t$ and $\Delta v = v_{t+1} - v_t$.
+
+In 3D space, a point can be represented as $\vec{p} = (x, y, z)$, and the scene flow in 3D can be expressed as $\Delta p = \vec{p}_{t+1} - \vec{p}_t$.
+The 2D optical flow is, in fact, a projection of the 3D scene flow onto the camera’s image plane. Therefore, we can estimate the 3D scene flow based on the 2D optical flow and the corresponding depth map displacement.
+
+\subsection{Fast Rotation Matrix Estimation Based on Depth Video Stream and Optical Flow}
+Dynamic Gaussian point cloud flow estimation relies on scene flow to estimate the displacement of each frame of the Gaussian point cloud in 3D space. The rotation matrix is used to estimate the rotation of each Gaussian point cloud in the next frame.
+
+\subsection{End-to-End Training of the Gaussian Point Cloud}
+The entire Gaussian point cloud system is trained in an end-to-end manner, fine-tuning the system parameters to address errors in optical flow estimation and rotation estimation. This process also compensates for indirect reflection changes caused by object movement and varying lighting conditions over time.
