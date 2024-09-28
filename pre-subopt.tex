@@ -1,0 +1,158 @@
+\section{Mathematical Formulation for Camera Placement in 3D Space via Submodular Optimization}
+
+%\subsection{Problem Definition}
+
+The goal of the camera placement problem in 3D space is to optimize the configuration of a set of cameras to maximize the coverage of viewpoints while minimizing occlusions and the total number of cameras used.
+
+%\subsection*{Notations}
+
+\begin{itemize}
+	\item Let \( X \) be the set of possible camera locations in 3D space.
+	\item Let \( S \subseteq X \) be the set of selected camera locations.
+	\item Let \( V \) be the set of viewpoints (or points of interest) in the 3D space that need to be covered.
+	\item Let \( f: 2^S \to \mathbb{R} \) be a submodular function that captures the coverage provided by the cameras in set \( S \).
+\end{itemize}
+
+\subsection*{Objective Function}
+
+The objective is to maximize the coverage of viewpoints while considering penalties for the number of cameras and occlusions. This can be formulated as:
+
+\[
+\max_{S \subseteq X} f(S) - \lambda |S| - \mu \text{Occlusions}(S)
+\]
+
+where:
+\begin{itemize}
+	\item \( f(S) \) is the submodular function representing the number of distinct viewpoints covered by the cameras in \( S \).
+	\item \( |S| \) is the number of cameras in the set.
+	\item \( \lambda \) is a weight that penalizes the total number of cameras.
+	\item \( \mu \) is a weight that penalizes the total occlusions.
+\end{itemize}
+
+\subsection*{Constraints}
+
+1. \textbf{Camera Count Constraint}: If there is a maximum allowable number of cameras \( k \), then:
+
+\[
+|S| \leq k
+\]
+
+2. \textbf{Occlusion Constraints}: Ensure that the occlusion function \( \text{Occlusions}(S) \) is minimized, which may depend on the relative positions of the cameras and the objects in the scene.
+
+\subsection*{Submodular Function Definition}
+
+The submodular function \( f(S) \) can be defined based on the coverage of viewpoints by the cameras in \( S \):
+
+- For each camera \( c \in S \), let \( \text{Coverage}(c) \) represent the set of viewpoints covered by camera \( c \).
+- The coverage function can then be formulated as:
+
+\[
+f(S) = |\bigcup_{c \in S} \text{Coverage}(c)|
+\]
+
+This function captures the total number of unique viewpoints covered by the selected cameras.
+
+\subsection*{Greedy Algorithm for Optimization}
+
+A greedy algorithm can be utilized to solve the camera placement optimization problem:
+
+\begin{enumerate}
+	\item \textbf{Initialization}: Start with an empty set \( S = \emptyset \).
+	
+	\item \textbf{Iterative Selection}: For each iteration \( i \):
+	
+	\begin{enumerate}
+		\item Evaluate the marginal gain of adding each camera \( c \in X \) to the set \( S \):
+		
+		\[
+		\text{Gain}(c, S) = f(S \cup \{c\}) - f(S) - \lambda (|S| + 1) + \mu \text{Occlusions}(S \cup \{c\}) - \text{Occlusions}(S)
+		\]
+		
+		\item Select the camera \( c^* \) that maximizes the gain:
+		
+		\[
+		c^* = \arg\max_{c \in X \setminus S} \text{Gain}(c, S)
+		\]
+		
+		\item Update the set \( S \):
+		
+		\[
+		S = S \cup \{c^*\}
+		\]
+		
+		\item Check the constraints. If adding \( c^* \) exceeds the maximum number of cameras \( k \) or results in unacceptable occlusions, terminate the selection process.
+	\end{enumerate}
+	
+	\item \textbf{Stopping Criterion}: The algorithm stops when either the camera count limit \( k \) is reached or no further significant gains can be achieved.
+\end{enumerate}
+
+\subsection*{Performance Guarantee}
+
+The greedy algorithm provides a performance guarantee of \( (1 - \frac{1}{e}) \) of the optimal solution for the coverage component. However, the inclusion of penalties for the number of cameras and occlusions requires careful consideration of the weights \( \lambda \) and \( \mu \) to ensure a balanced solution.
+
+\subsection*{Conclusion}
+
+This mathematical formulation for camera placement in 3D space using submodular optimization provides a structured approach to maximizing viewpoint coverage while minimizing occlusions and camera count. By leveraging the properties of submodular functions and employing a greedy algorithm, effective camera configurations can be derived for various applications in computer vision, surveillance, and robotics.
+
+
+Submodular optimization is a rich and powerful area of combinatorial optimization that focuses on optimizing functions with the property of diminishing returns. This characteristic is particularly relevant in various applications, including machine learning, economics, game theory, and network design.
+
+\section{Definition and Properties}
+A set function \( f: 2^N \to \mathbb{R} \) defined on a finite ground set \( N \) is submodular if, for any two sets \( A \subseteq B \subseteq N \) and any element \( x \in N \setminus B \), the following inequality holds:
+
+\[
+f(A \cup \{x\}) - f(A) \geq f(B \cup \{x\}) - f(B)
+\]
+
+This property indicates that the marginal gain from adding an element \( x \) to a smaller set \( A \) is at least as great as adding it to a larger set \( B \), demonstrating diminishing returns.
+
+%\section{Optimization Problem Formulation}
+The typical optimization problem can be expressed as follows:
+
+\[
+\max_{S \subseteq N, |S| \leq k} f(S)
+\]
+
+where \( k \) is a predetermined size limit for the subset \( S \).
+
+\section{Algorithms for Submodular Optimization}
+Submodular optimization has been extensively studied, leading to various algorithms:
+
+\begin{itemize}
+	\item \textbf{Greedy Algorithms}: The classic greedy algorithm provides a \( (1 - \frac{1}{e}) \)-approximation for maximizing a non-negative submodular function under a cardinality constraint. The algorithm iteratively adds the element that provides the highest marginal gain until the size constraint is met.
+	
+	\item \textbf{Continuous Relaxation}: For submodular functions, continuous approaches, such as using the Lovász extension, allow for optimization over the continuous domain, often yielding stronger guarantees and results in combinatorial settings.
+	
+	\item \textbf{Coordinate Descent}: This technique iteratively optimizes the function by fixing all variables but one, updating that variable to improve the objective, which is particularly effective in large-scale problems.
+	
+	\item \textbf{Convex Optimization Methods}: When dealing with submodular functions that are also convex, standard convex optimization techniques can be employed to find optimal solutions efficiently.
+\end{itemize}
+
+\section{Applications}
+The versatility of submodular optimization is evident across various domains:
+
+\begin{itemize}
+	\item \textbf{Machine Learning}: In active learning and sensor placement, submodular functions are used to model information gain, enabling more efficient data acquisition strategies.
+	
+	\item \textbf{Economics and Game Theory}: Submodular functions naturally model scenarios with resource allocation, where the utility of adding resources decreases as more are allocated.
+	
+	\item \textbf{Network Design}: In designing robust networks, submodular optimization assists in optimizing the placement of resources, such as servers or sensors, while accounting for diminishing returns in coverage or connectivity.
+	
+	\item \textbf{Computer Vision}: Techniques such as image segmentation and object recognition benefit from submodular functions that model the relationships between image pixels and segments.
+\end{itemize}
+
+\section{Challenges and Future Directions}
+Despite its robustness, submodular optimization faces several challenges:
+
+\begin{itemize}
+	\item \textbf{Scalability}: As the size of the input set increases, algorithms may struggle with efficiency. Research into scalable algorithms that can handle large datasets is ongoing.
+	
+	\item \textbf{Approximation Guarantees}: While greedy algorithms provide strong theoretical guarantees, practical implementations may require further refinement to achieve optimal performance across diverse applications.
+	
+	\item \textbf{Generalization to Non-Submodular Functions}: Many real-world problems do not conform strictly to submodularity, prompting research into relaxation techniques or hybrid models that capture a broader range of behaviors.
+	
+	\item \textbf{Distributed Optimization}: In the age of big data, developing distributed algorithms that can efficiently handle submodular functions across decentralized data sources is an active area of research.
+\end{itemize}
+
+\section{Conclusion}
+Submodular optimization presents a powerful framework for tackling various combinatorial optimization problems with applications across multiple fields. Its distinctive properties of diminishing returns make it suitable for modeling complex systems where resource allocation is critical. Continued advancements in algorithms and applications are essential for fully leveraging the potential of submodular optimization in addressing real-world challenges.

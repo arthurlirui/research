@@ -16,7 +16,7 @@
 
 \begin{document}
 
-\title{Real-Time Dynamic Scene Reconstruction}
+\title{The Philosophy of Camera Array Design by Maximizing Entropy Rate of Random Walk}
 
 \author{Rui Li}
         % <-this % stops a space
@@ -56,17 +56,20 @@
 \newcommand{\note}[1]{{\em{\textcolor{orange}{#1}}}}
 
 \begin{abstract}
-The concept of dynamic scene reconstruction closely aligns with our primary national project on immersive communication, wireless communication, 6G technology, and dynamic scene representation and rendering. These sub-projects will form the core components of the 6G initiatives, playing a critical role in advancing the overarching objectives.
+In this paper, we present a camera array design method to optimize large number of camera’s configuration, for observing the all target in an arbitrary 3D space with minimum camera and occlusion. Since the total possible configuration of camera array design is huge number, the global optimum requires exhaustive search of all possible configuration, which is a NP-hard problems for optimization. We utilize submodular optimization methods to find a nice configuration, which provides a (1-1/e)-approximation for maximizing a non-negative submodular function.
 \end{abstract}
 
 %\begin{IEEEkeywords}
 
 %\end{IEEEkeywords}
-
-\input{idea-dynamic4DGS}
-\input{idea-directGS}
-\input{idea-medicalGS}
-\input{pre-camera}
+\input{idea-camera_design}
+\input{related-subopt}
+\input{pre-subopt}
+\input{pre-entropy}
+%\input{idea-dynamic4DGS}
+%\input{idea-directGS}
+%\input{idea-medicalGS}
+%\input{pre-camera}
 %\input{intro}
 %\input{sh}
 %\input{pre-sh}
