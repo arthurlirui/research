@@ -1,1 +1,247 @@
-\section{GS for efficient Tomography Representation}
+\section{Imaging Formation Model for Computed Tomography}
+
+We first show that the preliminary knowledge for neural rendering and volumetric rendering for computed tomography.
+\subsection{Neural Volume Representation}
+The 3D object or volume to be reconstructed is parameterized using a neural network \( f_\phi \):
+\[
+f_\phi(\mathbf{x}) = \rho(\mathbf{x}), \quad \mathbf{x} \in \mathbb{R}^3
+\]
+where:
+\begin{itemize}
+	\item \( \phi \): Trainable parameters of the neural network.
+	\item \( \rho(\mathbf{x}) \): Density or attenuation coefficient at position \( \mathbf{x} \), which can be considered as the feature for material type.
+\end{itemize}
+
+\subsection{Volume Rendering Equation}
+The projection data is computed using a differentiable rendering equation based on the Beer-Lambert law of X-ray attenuation:
+\[
+I(\mathbf{r}) = I_0 \exp\left( -\int_{\mathbf{r}} \rho(\mathbf{x}) \, d\mathbf{x} \right),
+\]
+where:
+\begin{itemize}
+	\item \( I_0 \): Incident ray intensity.
+	\item \( \mathbf{r} \): A ray parameterized as \( \mathbf{r}(t) = \mathbf{o} + t\mathbf{d} \), with origin \( \mathbf{o} \) and direction \( \mathbf{d} \).
+	\item \( \rho(\mathbf{x}) \): Density at location \( \mathbf{x} \).
+	\item \( \int_{\mathbf{r}} \): Line integral along the ray.
+\end{itemize}
+Please note that rendering equation is different from neural rendering for natural scene, it is semi-transparent in X-ray scene.
+
+For neural rendering, this becomes:
+\[
+I_\phi(\mathbf{r}) = I_0 \exp\left( -\int_{\mathbf{r}} f_\phi(\mathbf{x}) \, d\mathbf{x} \right).
+\]
+
+$f_\phi(\mathbf{x})$ can be MLPs for density field.
+
+\subsection{Forward Projection (Ray Sampling)}
+The integral along the ray \( \mathbf{r} \) is approximated using numerical quadrature. A set of sample points \( \{\mathbf{x}_i\} \) along the ray is chosen:
+\[
+\int_{\mathbf{r}} f_\phi(\mathbf{x}) \, d\mathbf{x} \approx \sum_{i=1}^N f_\phi(\mathbf{x}_i) \Delta t,
+\]
+where:
+\begin{itemize}
+	\item \( \Delta t \): Sampling step size, or sampling interval, it is identical for uniform sampling, but it can be various for other sampling strategies, e.g. importance sampling.
+	\item \( N \): Number of sample points along the ray.
+\end{itemize}
+
+The ray intensity becomes:
+\[
+I_\phi(\mathbf{r}) \approx I_0 \exp\left( -\sum_{i=1}^N f_\phi(\mathbf{x}_i) \Delta t \right).
+\]
+
+\subsection{Loss Function}
+The traditional loss function for tomography scene is trained by minimizing the error between the predicted projections and the ground truth projection data:
+\[
+\mathcal{L}(\phi) = \sum_{k} \| I_\phi(\mathbf{r}_k) - I(\mathbf{r}_k) \|^2,
+\]
+where:
+\begin{itemize}
+	\item \( I_\phi(\mathbf{r}_k) \): Predicted intensity for ray \( \mathbf{r}_k \).
+	\item \( I(\mathbf{r}_k) \): Measured projection data that captures by CT, real observation.
+\end{itemize}
+
+%\subsection{Reconstruction}
+%Once the neural network is trained, the density field \( \rho(\mathbf{x}) \) (or \( f_\phi(\mathbf{x}) \)) is reconstructed. The neural network can then be queried at arbitrary 3D points to reconstruct the volume.
+%
+%\subsection{Neural Rendering Advantages}
+%\begin{itemize}
+%	\item \textbf{Continuous Representation}: The neural network provides a continuous and differentiable representation of the volume, avoiding discretization artifacts.
+%	\item \textbf{Regularization}: Neural networks implicitly regularize the solution, reducing noise and reconstruction artifacts.
+%	\item \textbf{Data Efficiency}: Neural rendering approaches can handle sparse or noisy projection data better than traditional methods.
+%	\item \textbf{Flexibility}: Neural rendering allows integration with learned priors or domain-specific knowledge.
+%\end{itemize}
+%
+%\subsection{Practical Considerations}
+%\begin{itemize}
+%	\item \textbf{Ray Sampling}: Efficient sampling along rays is critical for accurate rendering and training.
+%	\item \textbf{Network Architecture}: MLPs (multilayer perceptrons) with positional encoding are commonly used.
+%	\item \textbf{Loss Functions}: Additional loss terms (e.g., total variation or perceptual loss) may be added for better reconstructions.
+%	\item \textbf{Optimization}: Use gradient-based optimization methods (e.g., Adam) for training the network.
+%\end{itemize}
+
+
+\section{Objective Function for Limited Material Components in Neural Rendering}
+
+\subsection{Problem Setup}
+Let the density field \( f_\phi(\mathbf{x}) \) represent the attenuation coefficient or material density at a point \( \mathbf{x} \). The reconstructed object contains \( M \) distinct material types with predefined or learned density values \( \{d_1, d_2, \dots, d_M\} \).
+
+\subsection{Data Fidelity Term}
+The data fidelity term ensures the reconstructed projections match the measured projections:
+\[
+\mathcal{L}_{\text{data}}(\phi) = \sum_k \| I_\phi(\mathbf{r}_k) - I(\mathbf{r}_k) \|^2,
+\]
+where:
+\begin{itemize}
+	\item \( I_\phi(\mathbf{r}_k) \): Predicted intensity for ray \( \mathbf{r}_k \).
+	\item \( I(\mathbf{r}_k) \): Measured projection intensity for ray \( \mathbf{r}_k \).
+\end{itemize}
+
+\subsection{Regularization for Discrete Material Densities}
+
+\subsubsection*{(a) Material Clustering Regularization}
+To encourage the reconstructed density \( f_\phi(\mathbf{x}) \) to take on values close to the material density set \( \{d_1, d_2, \dots, d_M\} \), we define a clustering loss:
+\[
+\mathcal{R}_{\text{cluster}}(\phi) = \int_{\mathbb{R}^3} \min_{m} \| f_\phi(\mathbf{x}) - d_m \|^2 \, d\mathbf{x}.
+\]
+
+For a discrete set of sampled points \( \{\mathbf{x}_i\} \), this becomes:
+\[
+\mathcal{R}_{\text{cluster}}(\phi) \approx \sum_{i} \min_{m} \| f_\phi(\mathbf{x}_i) - d_m \|^2.
+\]
+
+\subsubsection{(b) Sparsity of Material Components}
+To ensure only a limited number of material types are present, sparsity can be encouraged using a soft material assignment. Define weights for each material:
+\[
+w_m(\mathbf{x}) = \frac{\exp(-\| f_\phi(\mathbf{x}) - d_m \|^2 / \sigma)}{\sum_{n=1}^M \exp(-\| f_\phi(\mathbf{x}) - d_n \|^2 / \sigma)},
+\]
+where:
+\begin{itemize}
+	\item \( w_m(\mathbf{x}) \): Soft assignment weight for material \( m \) at location \( \mathbf{x} \).
+	\item \( \sigma \): Temperature parameter controlling the sharpness of the assignment.
+\end{itemize}
+
+The sparsity regularization term is then defined as:
+\[
+\mathcal{R}_{\text{sparsity}}(\phi) = \int_{\mathbb{R}^3} \sum_{m=1}^M w_m(\mathbf{x}) \log w_m(\mathbf{x}) \, d\mathbf{x}.
+\]
+
+For discrete points \( \{\mathbf{x}_i\} \), this becomes:
+\[
+\mathcal{R}_{\text{sparsity}}(\phi) \approx \sum_{i} \sum_{m=1}^M w_m(\mathbf{x}_i) \log w_m(\mathbf{x}_i).
+\]
+
+\subsection{Overall Objective Function}
+The combined objective function is given by:
+\[
+\mathcal{L}(\phi) = \mathcal{L}_{\text{data}}(\phi) + \lambda_{\text{cluster}} \mathcal{R}_{\text{cluster}}(\phi) + \lambda_{\text{sparsity}} \mathcal{R}_{\text{sparsity}}(\phi),
+\]
+where:
+\begin{itemize}
+	\item \( \lambda_{\text{cluster}} \): Weight for clustering regularization.
+	\item \( \lambda_{\text{sparsity}} \): Weight for sparsity regularization.
+\end{itemize}
+
+%\subsection{Practical Considerations}
+%\begin{itemize}
+%	\item \textbf{Predefined Material Densities}: Use known or estimated material densities \( \{d_1, d_2, \dots, d_M\} \). If unknown, these can be learned as additional parameters.
+%	\item \textbf{Soft Assignment Tuning}: Start with larger \( \sigma \) for soft assignments and reduce it during optimization to enforce sharper material boundaries.
+%	\item \textbf{Gradient-Based Optimization}: Minimize \( \mathcal{L}(\phi) \) using optimizers such as Adam. Both \( \mathcal{R}_{\text{cluster}} \) and \( \mathcal{R}_{\text{sparsity}} \) are differentiable.
+%	\item \textbf{Balance Regularization Terms}: Tune \( \lambda_{\text{cluster}} \) and \( \lambda_{\text{sparsity}} \) to balance data fidelity and regularization.
+%\end{itemize}
+
+
+
+
+\section{Pipeline: Neural Rendering with Limited Material Components Constraint}
+
+\subsection{Step 1: Initialization}
+\begin{enumerate}
+	\item \textbf{Define Materials}: Predefine or initialize \( M \) distinct material density values \( \{d_1, d_2, \dots, d_M\} \). If material densities are unknown, treat \( \{d_1, d_2, \dots, d_M\} \) as learnable parameters.
+	\item \textbf{Network Architecture}: Use a neural network (e.g., an MLP) to represent the density field \( f_\phi(\mathbf{x}) \), where \( \phi \) represents the network parameters. Optionally include additional outputs for RGB color if rendering visualizations is needed.
+	\item \textbf{Rendering Model}: Define the volume rendering process to compute the predicted projections \( I_\phi(\mathbf{r}_k) \) for rays \( \mathbf{r}_k \).
+\end{enumerate}
+
+\subsection{Step 2: Data Fidelity Computation}
+Compute the data fidelity loss to ensure the rendered projections match the measured projections:
+\[
+\mathcal{L}_{\text{data}}(\phi) = \sum_k \| I_\phi(\mathbf{r}_k) - I_{\text{measured}}(\mathbf{r}_k) \|^2,
+\]
+where \( I_\phi(\mathbf{r}_k) \) is obtained using neural rendering for the current density field \( f_\phi(\mathbf{x}) \).
+
+\subsection{Step 3: Regularization for Discrete Material Components}
+\subsubsection{(a) Clustering Regularization}
+Encourage the density \( f_\phi(\mathbf{x}) \) to take values close to the material set \( \{d_1, d_2, \dots, d_M\} \):
+\[
+\mathcal{R}_{\text{cluster}}(\phi) = \int_{\mathbb{R}^3} \min_{m} \| f_\phi(\mathbf{x}) - d_m \|^2 \, d\mathbf{x}.
+\]
+
+For a discrete set of sampled points \( \{\mathbf{x}_i\} \), this becomes:
+\[
+\mathcal{R}_{\text{cluster}}(\phi) \approx \sum_{i} \min_{m} \| f_\phi(\mathbf{x}_i) - d_m \|^2.
+\]
+
+\subsubsection{(b) Sparsity Regularization}
+Enforce sparsity of material components using soft assignments:
+\[
+w_m(\mathbf{x}) = \frac{\exp(-\| f_\phi(\mathbf{x}) - d_m \|^2 / \sigma)}{\sum_{n=1}^M \exp(-\| f_\phi(\mathbf{x}) - d_n \|^2 / \sigma)}.
+\]
+
+The sparsity regularization term is:
+\[
+\mathcal{R}_{\text{sparsity}}(\phi) = \int_{\mathbb{R}^3} \sum_{m=1}^M w_m(\mathbf{x}) \log w_m(\mathbf{x}) \, d\mathbf{x}.
+\]
+
+For discrete points \( \{\mathbf{x}_i\} \), this becomes:
+\[
+\mathcal{R}_{\text{sparsity}}(\phi) \approx \sum_{i} \sum_{m=1}^M w_m(\mathbf{x}_i) \log w_m(\mathbf{x}_i).
+\]
+
+\subsection{Step 4: Combined Loss Function}
+The overall objective function is:
+\[
+\mathcal{L}(\phi) = \mathcal{L}_{\text{data}}(\phi) + \lambda_{\text{cluster}} \mathcal{R}_{\text{cluster}}(\phi) + \lambda_{\text{sparsity}} \mathcal{R}_{\text{sparsity}}(\phi),
+\]
+where:
+\begin{itemize}
+	\item \( \lambda_{\text{cluster}} \): Weight for clustering regularization.
+	\item \( \lambda_{\text{sparsity}} \): Weight for sparsity regularization.
+\end{itemize}
+
+\subsection{Step 5: Optimization}
+\begin{enumerate}
+	\item \textbf{Gradient Computation}: Compute gradients of \( \mathcal{L}(\phi) \) with respect to network parameters \( \phi \) and (optionally) material densities \( \{d_1, d_2, \dots, d_M\} \).
+	\item \textbf{Optimization}: Use a gradient-based optimizer (e.g., Adam) to minimize \( \mathcal{L}(\phi) \).
+	\item \textbf{Iterative Refinement}: Start with high \( \sigma \) values (soft assignments) and gradually reduce \( \sigma \) to sharpen material boundaries.
+\end{enumerate}
+
+\subsection{Step 6: Material Density Refinement (Optional)}
+If \( \{d_1, d_2, \dots, d_M\} \) are not predefined:
+\begin{itemize}
+	\item Treat them as learnable parameters.
+	\item Regularize the material densities to ensure separation:
+	\[
+	\mathcal{R}_{\text{material}}(d) = \sum_{m=1}^M \sum_{n \neq m} \frac{1}{\| d_m - d_n \|^2 + \epsilon}.
+	\]
+\end{itemize}
+
+\subsection{Step 7: Convergence and Output}
+\begin{enumerate}
+	\item \textbf{Convergence}: Verify that the loss \( \mathcal{L}(\phi) \) and material assignments stabilize.
+	\item \textbf{Output}: Extract the reconstructed density field \( f_\phi(\mathbf{x}) \) and assign materials:
+	\[
+	\text{Material at } \mathbf{x} : \arg \min_{m} \| f_\phi(\mathbf{x}) - d_m \|.
+	\]
+\end{enumerate}
+
+\subsection{Diagram Representation}
+\begin{center}
+	%\includegraphics[width=0.9\textwidth]{pipeline_diagram_placeholder.png}
+\end{center}
+\textit{(Diagram Placeholder: Input projections lead to data fidelity loss, clustering loss, and sparsity loss, which are combined and optimized via backpropagation.)}
+
+
+	
+
+
+
+
