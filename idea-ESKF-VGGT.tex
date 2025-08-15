@@ -1,0 +1,231 @@
+\section{Idea 4: Error State VGGT for Spatial-time Stable 3D Geometry Inference}
+\subsection{Abstract}
+Recent advances in feed-forward deep learning models, particularly Transformers, have demonstrated remarkable capabilities in jointly estimating camera poses, 3D geometry, and depth from multi-view images. 
+However, these models often produce outputs with small perturbations, such as jitter in camera poses or scale inconsistencies in depth, due to inherent noise in inference. 
+To enhance stability, we propose a hybrid framework that integrates an Error-State Kalman Filter (ESKF) with a Transformer-based inference pipeline. The ESKF operates on the tangent space of the estimated states, refining camera poses and depth scales by modeling perturbations as Gaussian errors, while the Transformer provides robust initial predictions. 
+This combination leverages the strengths of deep learning for global feature extraction and probabilistic filtering for temporal smoothing, resulting in more stable and metrically consistent outputs. 
+Experiments on benchmark datasets demonstrate significant improvements in pose smoothness and depth-scale coherence compared to standalone deep learning approaches.
+
+\subsection{Introduction}
+The advent of large-scale neural networks, particularly vision Transformers, has revolutionized geometric computer vision tasks such as camera pose estimation, depth prediction, and 3D reconstruction. 
+These models process multiple input images in a feed-forward manner, inferring scene structure and camera motion directly from pixel data. 
+However, despite their impressive performance, their outputs often exhibit high-frequency noise, such as jitter in estimated camera trajectories or drift in depth scales, due to the lack of explicit temporal consistency modeling.
+
+Traditional filtering techniques, such as the Kalman Filter (KF), have long been used to smooth noisy state estimates in robotics and SLAM. 
+However, applying these methods to deep learning outputs is challenging because:
+\begin{itemize}
+	\item \textbf{Nonlinearities in Pose Estimation}: Camera orientations lie in the special orthogonal group $SO(3)$, which complicates standard KF formulations.
+	\item \textbf{Scale Ambiguity in Depth}: Monocular depth estimators often predict depth up to an unknown scale, requiring careful alignment across frames.
+\end{itemize}
+
+The key innovations include:
+\begin{enumerate}
+	\item \textbf{Error-State Formulation}: Representing pose and depth errors in the tangent space of $SE(3)$ and $\mathbb{R}^+$, enabling efficient Kalman updates.
+	\item \textbf{Hybrid Learning-Filtering Pipeline}: The Transformer acts as a ``measurement generator,'' while the ESKF provides Bayesian smoothing, bridging the gap between learning and probabilistic filtering.
+\end{enumerate}
+
+We validate our method on real-world and synthetic datasets, showing significant improvements in pose stability and depth-scale consistency over pure deep learning baselines. This work paves the way for more reliable integration of deep learning with classical filtering techniques in geometric vision tasks.
+
+%\subsection{Preliminary}
+\subsection{Error-State Formulation}
+The Error-State Kalman Filter (ESKF) is designed to estimate small perturbations around a nominal state, particularly suited for systems with nonlinear state representations like $SO(3)$. Given a nominal state $\mathbf{x} \in \mathcal{M}$ (where $\mathcal{M}$ is a manifold) and true state $\mathbf{x}_\text{true}$, we define:
+
+\begin{equation}
+	\mathbf{x}_\text{true} = \mathbf{x} \oplus \delta\mathbf{x}
+\end{equation}
+
+where $\oplus$ denotes the manifold composition operator and $\delta\mathbf{x} \in \mathbb{R}^n$ is the error state in the tangent space. For camera pose estimation, we typically have:
+
+\begin{equation}
+	\mathbf{x} = \begin{bmatrix}
+		\mathbf{t} \\ \mathbf{q}
+	\end{bmatrix} \in \mathbb{R}^3 \times S^3, \quad
+	\delta\mathbf{x} = \begin{bmatrix}
+		\delta\mathbf{t} \\ \delta\boldsymbol{\theta}
+	\end{bmatrix} \in \mathbb{R}^6
+\end{equation}
+
+where $\mathbf{t}$ is position, $\mathbf{q}$ is orientation (unit quaternion), $\delta\mathbf{t}$ is position error, and $\delta\boldsymbol{\theta}$ is minimal-angle orientation error.
+
+\subsection{Error-State Dynamics}
+The ESKF propagates the error state according to:
+
+\begin{equation}
+	\delta\mathbf{x}_{k+1} = \mathbf{F}_k\delta\mathbf{x}_k + \mathbf{G}_k\mathbf{w}_k
+\end{equation}
+
+where:
+\begin{itemize}
+	\item $\mathbf{F}_k$ is the error-state transition matrix
+	\item $\mathbf{G}_k$ is the noise Jacobian matrix
+	\item $\mathbf{w}_k \sim \mathcal{N}(0,\mathbf{Q}_k)$ is the process noise
+\end{itemize}
+
+For camera pose tracking with IMU measurements, the transition matrix takes the form:
+
+\begin{equation}
+	\mathbf{F}_k = \begin{bmatrix}
+		\mathbf{I}_3 & \Delta t\mathbf{I}_3 & \mathbf{0} \\
+		\mathbf{0} & \mathbf{I}_3 & -[\mathbf{a}]_\times\Delta t \\
+		\mathbf{0} & \mathbf{0} & \mathbf{I}_3 - [\boldsymbol{\omega}]_\times\Delta t
+	\end{bmatrix}
+\end{equation}
+
+where $[\cdot]_\times$ denotes the skew-symmetric matrix operator, $\mathbf{a}$ is acceleration, and $\boldsymbol{\omega}$ is angular velocity.
+
+\subsection{Measurement Update}
+When receiving measurements $\mathbf{z}_k$ from the Transformer network (e.g., relative pose or depth estimates), the update follows:
+
+\begin{equation}
+	\delta\mathbf{z}_k = \mathbf{z}_k \ominus h(\mathbf{x}_k)
+\end{equation}
+
+where $\ominus$ is the measurement difference operator on the manifold. The Kalman gain is computed as:
+
+\begin{equation}
+	\mathbf{K}_k = \mathbf{P}_k\mathbf{H}_k^\top(\mathbf{H}_k\mathbf{P}_k\mathbf{H}_k^\top + \mathbf{R}_k)^{-1}
+\end{equation}
+
+with $\mathbf{H}_k$ being the measurement Jacobian, and the error state is updated via:
+
+\begin{equation}
+	\delta\mathbf{x}_k \leftarrow \mathbf{K}_k\delta\mathbf{z}_k
+\end{equation}
+
+\subsection{Error Reset}
+After each update, the error state is injected into the nominal state:
+
+\begin{equation}
+	\mathbf{x}_k \leftarrow \mathbf{x}_k \oplus \delta\mathbf{x}_k
+\end{equation}
+
+and the error state is reset to zero, with covariance updated as:
+
+\begin{equation}
+	\mathbf{P}_k \leftarrow (\mathbf{I} - \mathbf{K}_k\mathbf{H}_k)\mathbf{P}_k
+\end{equation}
+
+This formulation provides a computationally efficient way to maintain the nonlinear state on the manifold while performing all filtering operations in the linear error space.
+
+\subsection{Method ESKF-VGGT}
+
+\section{ESKF Stabilization for Neural Network Outputs}
+\subsection{System Overview}
+Given a neural network $\mathcal{N}$ that processes $N$ input images $\{I_1,...,I_N\}$ and outputs:
+\begin{equation}
+	\{\mathbf{T}_i,\mathbf{D}_i\}_{i=1}^N = \mathcal{N}(I_1,...,I_N)
+\end{equation}
+where:
+\begin{itemize}
+	\item $\mathbf{T}_i = (\mathbf{R}_i,\mathbf{t}_i) \in SE(3)$ is the camera pose (rotation $\mathbf{R}_i \in SO(3)$, translation $\mathbf{t}_i \in \mathbb{R}^3$)
+	\item $\mathbf{D}_i \in \mathbb{R}^{H\times W}$ is the depth map in the $i$-th camera frame
+\end{itemize}
+
+\subsection{ESKF State Representation}
+We design an ESKF with the following state components:
+
+\subsubsection{Nominal State}
+\begin{equation}
+	\mathbf{x} = \begin{bmatrix}
+		\mathbf{t} \\ \mathbf{q} \\ s
+	\end{bmatrix}, \quad
+	\begin{cases}
+		\mathbf{t} \in \mathbb{R}^3 & \text{(position)} \\
+		\mathbf{q} \in S^3 & \text{(orientation quaternion)} \\
+		s \in \mathbb{R}^+ & \text{(depth scale factor)}
+	\end{cases}
+\end{equation}
+
+\subsubsection{Error State}
+\begin{equation}
+	\delta\mathbf{x} = \begin{bmatrix}
+		\delta\mathbf{t} \\ \delta\boldsymbol{\theta} \\ \delta s
+	\end{bmatrix}, \quad
+	\begin{cases}
+		\delta\mathbf{t} \in \mathbb{R}^3 & \text{(position error)} \\
+		\delta\boldsymbol{\theta} \in \mathbb{R}^3 & \text{(orientation error)} \\
+		\delta s \in \mathbb{R} & \text{(scale error)}
+	\end{cases}
+\end{equation}
+
+\subsection{Filter Initialization}
+\begin{enumerate}
+	\item Initialize with first network prediction:
+	\begin{equation}
+		\mathbf{x}_0 = \begin{bmatrix}
+			\mathbf{t}_0 \\ \mathbf{q}_0 \\ 1.0
+		\end{bmatrix}, \quad \mathbf{P}_0 = \text{diag}(\sigma_t^2\mathbf{I}_3, \sigma_\theta^2\mathbf{I}_3, \sigma_s^2)
+	\end{equation}
+	
+	\item For depth maps, maintain per-pixel inverse depths $\boldsymbol{\rho} = 1/\mathbf{D}$
+\end{enumerate}
+
+\subsection{Filter Propagation}
+For sequential frames (assuming constant velocity model):
+
+\begin{equation}
+	\begin{aligned}
+		\mathbf{t}_k^- &= \mathbf{t}_{k-1} + \mathbf{v}_{k-1}\Delta t \\
+		\mathbf{q}_k^- &= \mathbf{q}_{k-1} \otimes \mathbf{q}\{\boldsymbol{\omega}_{k-1}\Delta t\} \\
+		s_k^- &= s_{k-1}
+	\end{aligned}
+\end{equation}
+
+Error state covariance propagates as:
+\begin{equation}
+	\mathbf{P}_k^- = \mathbf{F}\mathbf{P}_{k-1}\mathbf{F}^\top + \mathbf{G}\mathbf{Q}\mathbf{G}^\top
+\end{equation}
+where:
+\begin{equation}
+	\mathbf{F} = \begin{bmatrix}
+		\mathbf{I}_3 & \mathbf{0} & \mathbf{0} \\
+		\mathbf{0} & \mathbf{I}_3 - [\boldsymbol{\omega}]_\times\Delta t & \mathbf{0} \\
+		\mathbf{0} & \mathbf{0} & 1
+	\end{bmatrix}, \quad
+	\mathbf{G} = \begin{bmatrix}
+		\mathbf{I}_3\Delta t & \mathbf{0} \\
+		\mathbf{0} & \mathbf{I}_3\Delta t \\
+		\mathbf{0} & \mathbf{0}
+	\end{bmatrix}
+\end{equation}
+
+\subsection{Measurement Update}
+Using network outputs as measurements:
+
+\subsubsection{Pose Measurement}
+\begin{equation}
+	\mathbf{z}_k^{\text{pose}} = \begin{bmatrix}
+		\mathbf{t}_k^{\text{net}} \\ \text{Log}(\mathbf{q}_k^{\text{net}} \otimes \mathbf{q}_k^{-})
+	\end{bmatrix}, \quad
+	\mathbf{H}^{\text{pose}} = \begin{bmatrix}
+		\mathbf{I}_3 & \mathbf{0} & \mathbf{0} \\
+		\mathbf{0} & \mathbf{I}_3 & \mathbf{0}
+	\end{bmatrix}
+\end{equation}
+
+\subsubsection{Depth Measurement}
+For selected keypoints $\mathbf{p}_i$ in image coordinates:
+\begin{equation}
+	z_k^{\text{depth},i} = \frac{\rho_k^{\text{net}}(\mathbf{p}_i)}{s_k^-}, \quad
+	H^{\text{depth},i} = \begin{bmatrix}
+		\mathbf{0} & \mathbf{0} & -\rho_k^{\text{net}}(\mathbf{p}_i)/(s_k^-)^2
+	\end{bmatrix}
+\end{equation}
+
+\subsection{Error Injection and Reset}
+After update:
+\begin{equation}
+	\begin{aligned}
+		\mathbf{t}_k &= \mathbf{t}_k^- + \delta\mathbf{t}_k \\
+		\mathbf{q}_k &= \mathbf{q}_k^- \otimes \mathbf{q}\{\delta\boldsymbol{\theta}_k\} \\
+		s_k &= s_k^- + \delta s_k \\
+		\mathbf{D}_k^{\text{stable}} &= s_k \cdot \mathbf{D}_k^{\text{net}}
+	\end{aligned}
+\end{equation}
+
+\subsection{Implementation Considerations}
+\begin{itemize}
+	\item Use sliding window optimization for multi-frame consistency
+	\item Adapt noise covariance $\mathbf{R}$ based on network confidence scores
+	\item Employ Schmidt-Kalman filter for unobservable directions (global position)
+\end{itemize}

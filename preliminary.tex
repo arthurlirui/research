@@ -1,0 +1,134 @@
+\subsubsection{Preliminary}
+\section{Pinhole Camera Model and Projection Equations}
+
+The pinhole camera model is a fundamental approach for modeling how a camera projects 3D points onto a 2D image plane. Below, we describe the equations governing this projection, including intrinsic and extrinsic parameters, and the full imaging equation.
+
+\subsection{Pinhole Camera Model}
+In the pinhole camera model, a point $\mathbf{P} = (X, Y, Z)^T$ in 3D space is projected onto a 2D point $\mathbf{p} = (x, y)^T$ on the image plane. This can be represented as:
+
+\[
+\begin{pmatrix}
+	x \\
+	y
+\end{pmatrix}
+=
+\frac{1}{Z}
+\begin{pmatrix}
+	f_x & 0 & c_x \\
+	0 & f_y & c_y
+\end{pmatrix}
+\begin{pmatrix}
+	X \\
+	Y \\
+	Z
+\end{pmatrix}
+\]
+
+where $(X, Y, Z)^T$ are the 3D coordinates of the point in the world coordinate system, and $(x, y)^T$ are the 2D coordinates of the projected point in the image plane. The terms $f_x, f_y$ represent the focal lengths along the $x$ and $y$ axes, and $c_x, c_y$ are the coordinates of the camera's principal point in the image plane.
+
+\subsection{Intrinsic Parameters}
+The intrinsic parameters of the camera account for the projection of 3D points onto the 2D image plane, including the focal length and principal point. The intrinsic matrix, denoted as $K$, is given by:
+
+\[
+K = 
+\begin{pmatrix}
+	f_x & 0 & c_x \\
+	0 & f_y & c_y \\
+	0 & 0 & 1
+\end{pmatrix}
+\]
+
+where $f_x = f \cdot s_x$ and $f_y = f \cdot s_y$ represent the focal lengths in pixels, taking into account scaling factors $s_x$ and $s_y$. The parameters $c_x, c_y$ denote the principal point coordinates, and the last row represents the use of homogeneous coordinates.
+
+\subsection{Extrinsic Parameters}
+The extrinsic parameters describe the transformation from the 3D world coordinate system to the 3D camera coordinate system. This transformation is defined by a rotation matrix $R$ and a translation vector $\mathbf{t}$. A 3D point in the world coordinate system, $\mathbf{P}_{world}$, is transformed into the camera coordinate system, $\mathbf{P}_{camera}$, by:
+
+\[
+\mathbf{P}_{camera} = R \mathbf{P}_{world} + \mathbf{t}
+\]
+
+where $R$ is a $3 \times 3$ rotation matrix and $\mathbf{t}$ is a $3 \times 1$ translation vector. In homogeneous coordinates, this transformation is written as:
+
+\[
+\begin{pmatrix}
+	X_c \\
+	Y_c \\
+	Z_c \\
+	1
+\end{pmatrix}
+=
+\begin{pmatrix}
+	R & \mathbf{t} \\
+	0 & 1
+\end{pmatrix}
+\begin{pmatrix}
+	X_w \\
+	Y_w \\
+	Z_w \\
+	1
+\end{pmatrix}
+\]
+
+where $\mathbf{P}_{camera} = (X_c, Y_c, Z_c)^T$ represents the point in the camera coordinate system and $\mathbf{P}_{world} = (X_w, Y_w, Z_w)^T$ represents the point in the world coordinate system.
+
+\subsection{Imaging Equation}
+By combining both intrinsic and extrinsic parameters, we can express the complete projection of a 3D point in the world onto the 2D image plane. The full imaging equation is given by:
+
+\[
+\begin{pmatrix}
+	x \\
+	y \\
+	1
+\end{pmatrix}
+=
+\frac{1}{Z_c}
+K
+\begin{pmatrix}
+	R & \mathbf{t} \\
+	0 & 1
+\end{pmatrix}
+\begin{pmatrix}
+	X_w \\
+	Y_w \\
+	Z_w \\
+	1
+\end{pmatrix}
+\]
+
+More explicitly, this equation can be written as:
+
+\[
+\begin{pmatrix}
+	x \\
+	y \\
+	1
+\end{pmatrix}
+=
+\frac{1}{Z_c}
+\begin{pmatrix}
+	f_x & 0 & c_x \\
+	0 & f_y & c_y \\
+	0 & 0 & 1
+\end{pmatrix}
+\begin{pmatrix}
+	R_{3 \times 3} & \mathbf{t}_{3 \times 1} \\
+	0 & 1
+\end{pmatrix}
+\begin{pmatrix}
+	X_w \\
+	Y_w \\
+	Z_w \\
+	1
+\end{pmatrix}
+\]
+
+where $(X_w, Y_w, Z_w)^T$ is the 3D point in world coordinates, $(x, y)^T$ is the 2D point on the image plane, and $Z_c$ represents the depth of the point in the camera coordinate system.
+
+\subsection{Summary}
+The projection of a 3D point from world coordinates onto the 2D image plane can thus be summarized by:
+
+\[
+\mathbf{p} = K [R | \mathbf{t}] \mathbf{P}_{world}
+\]
+
+where $\mathbf{p}$ represents the 2D point in homogeneous coordinates on the image plane, $K$ is the intrinsic camera matrix, $R$ and $\mathbf{t}$ are the extrinsic parameters (rotation and translation), and $\mathbf{P}_{world}$ is the 3D point in world coordinates. This equation describes how the pinhole camera model projects 3D points onto a 2D image plane using intrinsic and extrinsic parameters.

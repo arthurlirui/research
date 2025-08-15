@@ -1,0 +1,28 @@
+\section{Euler Angles}
+Euler angles are a set of three angles that describe the orientation of a rigid body in three-dimensional space. They are commonly used in fields like robotics, aerospace, and computer graphics to represent rotations. The three angles typically involved are:
+
+\begin{itemize}
+	\item \textbf{Yaw} (\(\alpha\)): Rotation around the vertical axis (z-axis). It determines the left-right orientation.
+	\item \textbf{Pitch} (\(\beta\)): Rotation around the lateral axis (y-axis). It controls the up-down orientation.
+	\item \textbf{Roll} (\(\gamma\)): Rotation around the longitudinal axis (x-axis). It adjusts the tilt or roll of the object.
+\end{itemize}
+
+\subsection*{Rotation Sequence}
+The sequence in which these rotations are applied matters, as rotations are not commutative. Common sequences include:
+\begin{itemize}
+	\item \textbf{Z-Y-X}: Rotate around z-axis (yaw), then y-axis (pitch), and finally x-axis (roll).
+	\item \textbf{Z-X-Z}: Two rotations around the z-axis and one around the x-axis.
+\end{itemize}
+
+\subsection*{Applications}
+Euler angles are widely used to:
+\begin{itemize}
+	\item Describe the orientation of aircraft, spacecraft, and vehicles.
+	\item Define camera angles in computer graphics.
+	\item Solve kinematics problems in robotics.
+\end{itemize}
+
+\subsection*{Limitations}
+Euler angles can suffer from issues like gimbal lock, where two axes align and cause a loss of one degree of freedom in rotation. This can make certain orientations difficult to achieve. To overcome this, alternatives like quaternions are often used in applications requiring smooth interpolation of rotations.
+
+Overall, Euler angles provide a straightforward way to represent and understand rotations in three dimensions, though their limitations necessitate careful consideration in certain scenarios.
